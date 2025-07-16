@@ -133,7 +133,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token('8161126638:AAHz1K7bwwhI-pWlMxa6Y0m9vXc0s1F6a04').build()
+    application = ApplicationBuilder().token('MY_TOKEN').build()
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.TEXT,handle_message))
