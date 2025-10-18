@@ -64,7 +64,8 @@ if uploaded_file is not None:
                 # POST request with the image file
                 response = httpx.post(
                     api_url,
-                    json = {"image_64_base": image_64}
+                    json = {"image_64_base": image_64},
+                    timeout = 10 
                 )
 
                 if response.status_code == 200:

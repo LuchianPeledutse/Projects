@@ -181,7 +181,7 @@ app = fastapi.FastAPI()
 
 @app.post('/prediction')
 async def predict(data: InputData):
-    image = Image.open(io.BytesIO(base64.b64decode(data.image_64_base)))
+    image = Image.open(io.BytesIO(base64.b64decode(data.image_64_base))).convert("RGB")
     prediction = model_inference(pillow_picture=image, model = model, tokenizer=model_tokenizer)
     return {"generated_text": prediction}
 
