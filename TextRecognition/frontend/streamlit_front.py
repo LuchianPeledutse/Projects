@@ -58,19 +58,22 @@ if uploaded_file is not None:
     if st.button("Predict"):
         with st.spinner("Sending image to model and getting prediction..."):
             try:
-                # backend API endpoint
-                api_url = "http://127.0.0.1:8000/prediction"
+                #backend prediction API endpoint
+                prediction_api_url = "http://127.0.0.1:8000/prediction"
+                #backend interaction API endpoint
+                interaction_api_url = "http://127.0.0.1:8001/interaction"
 
                 # POST request with the image file
                 response = httpx.post(
-                    api_url,
+                    prediction_api_url,
                     json = {"image_64_base": image_64},
                     timeout = 10 
                 )
 
                 if response.status_code == 200:
                     prediction = response.json()
-                    
+                    #push data to database
+                    httpx.post(interaction_api_url, json = {"input": image_64, "prediction": prediction['generated_text']})
                     # Display generated text
                     st.success("✅ Prediction received!")
                     st.subheader("Generated text:")
