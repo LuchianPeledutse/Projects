@@ -3,9 +3,14 @@ import base64
 
 import httpx
 
+import pillow_heif
 from PIL import Image
 
 import streamlit as st
+
+
+#adding ability to open heic images
+pillow_heif.register_heif_opener()
 
 
 
@@ -37,13 +42,20 @@ st.markdown(
 # File Upload Section
 uploaded_file = st.file_uploader(
     "Choose an image...",
-    type=["png", "jpg", "jpeg"],
-    help="Supported formats: PNG, JPG, JPEG"
+    type=["png", "jpg", "jpeg", "heic", "heif"],
+    help="Supported formats: PNG, JPG, JPEG, HEIC, HEIF"
 )
 
 if uploaded_file is not None:
     # Display uploaded image in a clean container
     image = Image.open(uploaded_file)
+    #If the image is in HEIF format
+    if image.format == 'HEIF':
+        image = image.convert("RGB")
+        jpeg_buffer = io.BytesIO()
+        image.save(jpeg_buffer,format = "JPEG")
+        image = Image.open(jpeg_buffer)
+    #display the image
     st.image(image, caption="Uploaded Image", use_container_width=True)
     
     # Convert image to bytes for API

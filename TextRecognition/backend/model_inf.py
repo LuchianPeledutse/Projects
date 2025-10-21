@@ -2,6 +2,7 @@ import io
 import base64
 import pickle
 
+import pillow_heif
 from PIL import Image
 
 import fastapi
@@ -18,6 +19,9 @@ from torchvision.transforms import functional
 
 import onnx
 import onnxruntime
+
+#adding ability to open heic images
+pillow_heif.register_heif_opener()
 
 #global parameters
 D_MODEL = 512
