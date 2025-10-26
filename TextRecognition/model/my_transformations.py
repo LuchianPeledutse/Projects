@@ -183,7 +183,7 @@ def synthetic_augmentation(img):
 
 
 
-def apply_transofrmation(img):
+def apply_transformation(img):
     """
     description
     -----------
