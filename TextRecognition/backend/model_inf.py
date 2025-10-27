@@ -57,7 +57,7 @@ def make_spaces(word):
     return ' '.join(list(word))
 
 #function for positional embeddings
-def pos_embeds(embedding_matrix, dev = 'cpu'):
+def pos_embeds(embedding_matrix, dev='cpu'):
     """
     Parameters
     ----------
@@ -68,21 +68,13 @@ def pos_embeds(embedding_matrix, dev = 'cpu'):
     embedding matrix + positional encoding
     same embedding matrix with added positional embeddings
     """
-    _, seq_len, embed_dim = tuple(embedding_matrix.shape)
-    #creating positional embedding matrix
-    pos_embeds = [] 
-    for pos in range(seq_len):
-        index_matrix = torch.arange(0, embed_dim).to(dtype = torch.float32, device=dev).reshape(1,-1)
-        #to even apply sin function
-        index_matrix[index_matrix%2 == 0] = torch.sin(pos/10_000**index_matrix[index_matrix%2 == 0]/embed_dim)
-        #to odd apply cos function but also with even indecies (that's why we extract 1)
-        index_matrix[index_matrix%2 == 1] = torch.cos(pos/10_000**((index_matrix[index_matrix%2 == 1]-1)/embed_dim))
-        pos_embeds.append(index_matrix)
-    #perform concatenation of resulting rows for each position
-    pos_embeds = torch.cat(pos_embeds)
-    #for each batch we add positional encodings
-    embedding_matrix = embedding_matrix + pos_embeds
-    return embedding_matrix
+    batch_size, seq_len, d_model = embedding_matrix.size()
+    position = torch.arange(seq_len, device=dev).unsqueeze(1)
+    div_term = torch.exp(torch.arange(0, d_model, 2, device=dev) * (-math.log(10000.0) / d_model))
+    pe = torch.zeros(seq_len, d_model, device=dev)
+    pe[:, 0::2] = torch.sin(position * div_term)
+    pe[:, 1::2] = torch.cos(position * div_term)
+    return embedding_matrix + pe.unsqueeze(0)
 
 #model inference
 def model_inference(pillow_picture, model, tokenizer, word_transform = make_spaces, picture_transform = resnet_trans, device = 'cpu', limit = 100):
