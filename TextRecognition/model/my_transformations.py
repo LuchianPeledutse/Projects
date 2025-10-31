@@ -192,8 +192,6 @@ def apply_transformation(img):
     #create a list of all transformations
     all_transformations = [img]
     #add all of the transformations
-    all_transformations += geometric_augmentation(img)[1:] #excluding the image itself (already present)
     all_transformations += photometric_augmentation(img)[1:]
     all_transformations += structural_augmentation(img)[1:]
-    all_transformations += synthetic_augmentation(img)[1:]
     return all_transformations    
