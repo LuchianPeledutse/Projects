@@ -38,11 +38,11 @@ class ImageData(BaseModel):
 app = fastapi.FastAPI()
 
 @app.post('/interaction')
-async def interaction_insertion(interaction: ImageData, status_code = status.HTTP_201_CREATED):
+async def interaction_insertion(interaction: ImageData, status_code=status.HTTP_201_CREATED):
     current_datetime = datetime.now()
     with Session(engine) as session:
         #creating and pushing a row for the database
-        user_interaction_row = UserInteraction(datetime = current_datetime, input = interaction.input, prediction = interaction.prediction)
+        user_interaction_row = UserInteraction(datetime=current_datetime, input = interaction.input, prediction = interaction.prediction)
         session.add(user_interaction_row)
         session.commit()
     #returning the response

@@ -20,9 +20,9 @@ import onnx
 import onnxruntime
 
 #global parameters
-D_MODEL = 512
-N_HEADS = 8
-NUM_LAYERS = 9
+D_MODEL = 516
+N_HEADS = 6
+NUM_LAYERS = 4
 
 
 
@@ -53,7 +53,7 @@ def make_spaces(word):
     return ' '.join(list(word))
 
 #function for positional embeddings
-def pos_embeds(embedding_matrix, dev = 'cpu'):
+def pos_embeds(embedding_matrix, dev='cpu'):
     """
     Parameters
     ----------
@@ -64,21 +64,13 @@ def pos_embeds(embedding_matrix, dev = 'cpu'):
     embedding matrix + positional encoding
     same embedding matrix with added positional embeddings
     """
-    _, seq_len, embed_dim = tuple(embedding_matrix.shape)
-    #creating positional embedding matrix
-    pos_embeds = [] 
-    for pos in range(seq_len):
-        index_matrix = torch.arange(0, embed_dim).to(dtype = torch.float32, device=dev).reshape(1,-1)
-        #to even apply sin function
-        index_matrix[index_matrix%2 == 0] = torch.sin(pos/10_000**index_matrix[index_matrix%2 == 0]/embed_dim)
-        #to odd apply cos function but also with even indecies (that's why we extract 1)
-        index_matrix[index_matrix%2 == 1] = torch.cos(pos/10_000**((index_matrix[index_matrix%2 == 1]-1)/embed_dim))
-        pos_embeds.append(index_matrix)
-    #perform concatenation of resulting rows for each position
-    pos_embeds = torch.cat(pos_embeds)
-    #for each batch we add positional encodings
-    embedding_matrix = embedding_matrix + pos_embeds
-    return embedding_matrix
+    batch_size, seq_len, d_model = embedding_matrix.size()
+    position = torch.arange(seq_len, device=dev).unsqueeze(1)
+    div_term = torch.exp(torch.arange(0, d_model, 2, device=dev) * (-math.log(10000.0) / d_model))
+    pe = torch.zeros(seq_len, d_model, device=dev)
+    pe[:, 0::2] = torch.sin(position * div_term)
+    pe[:, 1::2] = torch.cos(position * div_term)
+    return embedding_matrix + pe.unsqueeze(0)
 
 #model inference
 def model_inference(pillow_picture, model, tokenizer, word_transform = make_spaces, picture_transform = resnet_trans, device = 'cpu', limit = 100):
@@ -112,13 +104,21 @@ def model_inference(pillow_picture, model, tokenizer, word_transform = make_spac
 
 
 #main model
+#Enocder-Decoder model for TextRecognition 
 class TRModel(nn.Module):
-    def __init__(self, vocabulary_size, d_model = D_MODEL, nhead = N_HEADS, num_layers = NUM_LAYERS, padding_indx = 0, device = 'cpu'):
+    def __init__(self, vocabulary_size, d_model = D_MODEL, nhead = N_HEADS, num_layers = NUM_LAYERS, dropout = 0.5, padding_indx = 0, device = 'cpu', train=True, freeze_params=30):
         super().__init__()
         self.device = device
         #Encoder
-        #load ResNet with last two functions removed
+        #load ResNet with last two linear layers removed
         self.encoder = nn.Sequential(*list(torchvision.models.resnet18(weights = torchvision.models.ResNet18_Weights.IMAGENET1K_V1, progress = False).children())[:-2])
+        #freeze some layesr
+        count = 0
+        for parameter in self.encoder.parameters():
+            if count > freeze_params:
+                break
+            parameter.requires_grad = False
+            count += 1
 
         #linear head that project to embedding dimension
         self.linear_encoder_head = nn.Linear(512,d_model)
@@ -126,11 +126,17 @@ class TRModel(nn.Module):
         #Decoder
         #embedding layer
         self.embed_layer = nn.Embedding(num_embeddings=vocabulary_size, embedding_dim=d_model, padding_idx=padding_indx)
-        self.decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead)
+        self.decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead, dropout=dropout)
         self.decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=num_layers)
 
         #linear head over vocabulary
         self.linear_head = nn.Linear(d_model,vocabulary_size)
+    
+    def generate_mask(self,N):
+        """Generates a mask for transformer decoder self-attention"""
+        mask = (torch.triu(torch.ones(N,N)) == 1).transpose(0,1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
 
     def forward(self, x_pic_tensor, x_letter_ids):
         """
@@ -143,21 +149,22 @@ class TRModel(nn.Module):
         encoder_forward = encoder_forward.reshape(encoder_forward.shape[0], encoder_forward.shape[1], -1)
         #reshape to shape (batch_size, spatial_sequence_len, num_channels)
         encoder_forward = encoder_forward.transpose(1,2)
-        #adding positional embeddings
-        with torch.no_grad():
-            encoder_forward = pos_embeds(encoder_forward, dev = self.device)
         #projecting number of channels to d_model shape
         encoder_forward = self.linear_encoder_head(encoder_forward)
+        #adding positional embeddings
+        encoder_forward = pos_embeds(encoder_forward, dev=self.device)
         #reshaping to shape (seq_len, batch_size, embed_dim (d_model))
         encoder_forward = encoder_forward.transpose(0,1)
         
         #getting vector embeddings
         letter_embeds = self.embed_layer(x_letter_ids) 
         #add positional embeddings and reshaping to seq_len first
-        with torch.no_grad():
-            letter_embeds = pos_embeds(letter_embeds, dev = self.device).transpose(0,1)
+        letter_embeds = pos_embeds(letter_embeds, dev=self.device).transpose(0,1)
+        seq_len = letter_embeds.shape[0]
+        #creating a mask for decoder forwarding
+        tgt_mask = self.generate_mask(seq_len).to(self.device)
         #going through decoder
-        decoder_forward = self.decoder(letter_embeds, memory = encoder_forward)
+        decoder_forward = self.decoder(letter_embeds, memory=encoder_forward, tgt_mask=tgt_mask)
         clf_head = self.linear_head(decoder_forward)
         return clf_head
     
@@ -167,7 +174,7 @@ with open('model_tokenizer.pkl','rb') as tokenizer_file:
 
 #loading model weights
 model = TRModel(vocabulary_size=model_tokenizer._tokenizer.get_vocab_size())
-model.load_state_dict(torch.load(f='/home/luchian/all_data/ML_models_weights/TexRec_Overfit2_v1_weights.pth'))
+model.load_state_dict(torch.load(f='/home/luchian/all_data/ML_models_weights/29-10-2025_TextRec_6000_1000_weights_v1.0.pth'))
 
 #request bodies
 class InputData(BaseModel):
