@@ -12,11 +12,12 @@ from sqlalchemy import create_engine, DateTime, Text
 
 
 DB_USER = os.getenv('DB_USER')
-DB_USER_PASSWORD = os.getenv('DB_USER_PASSWORD') 
+DB_USER_PASSWORD = os.getenv('DB_USER_PASSWORD')
+DB_NAME = os.getenv('DB_NAME')
 
 #creating necessary information for the database 
 Base = declarative_base()
-engine = create_engine('postgresql://'+DB_USER+':'+DB_USER_PASSWORD+'@localhost:5432/textrecognitiondatabase')
+engine = create_engine('postgresql://'+DB_USER+':'+DB_USER_PASSWORD+'@localhost:5432/'+DB_NAME)
 
 #creating models for the database
 class UserInteraction(Base):
@@ -38,15 +39,15 @@ class ImageData(BaseModel):
 app = fastapi.FastAPI()
 
 @app.post('/interaction')
-async def interaction_insertion(interaction: ImageData, status_code=status.HTTP_201_CREATED):
+async def interaction_insertion(interaction:ImageData, status_code=status.HTTP_201_CREATED):
     current_datetime = datetime.now()
     with Session(engine) as session:
         #creating and pushing a row for the database
-        user_interaction_row = UserInteraction(datetime=current_datetime, input = interaction.input, prediction = interaction.prediction)
+        user_interaction_row = UserInteraction(datetime=current_datetime, input=interaction.input, prediction=interaction.prediction)
         session.add(user_interaction_row)
         session.commit()
     #returning the response
-    return responses.Response(status_code = status.HTTP_201_CREATED)
+    return responses.Response(status_code=status.HTTP_201_CREATED)
 # session = sessionmaker(bind=engine)()
 # session.add(UserInteraction(input="Test input", result="Test result"))
 # session.commit()

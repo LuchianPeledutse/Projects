@@ -1,4 +1,5 @@
 import io
+import os
 import base64
 
 import httpx
@@ -8,6 +9,10 @@ from PIL import Image
 import streamlit as st
 
 
+
+#environmental variables
+DB_API = os.getenv("DB_API")
+INFERENCE_API = os.getenv("INFERENCE_API")
 
 # Streamlit App Config
 st.set_page_config(
@@ -59,9 +64,9 @@ if uploaded_file is not None:
         with st.spinner("Sending image to model and getting prediction..."):
             try:
                 #backend prediction API endpoint
-                prediction_api_url = "http://127.0.0.1:8000/prediction"
+                prediction_api_url = INFERENCE_API+'/prediction'
                 #backend interaction API endpoint
-                interaction_api_url = "http://127.0.0.1:8001/interaction"
+                interaction_api_url = DB_API + '/interaction'
 
                 # POST request with the image file
                 response = httpx.post(

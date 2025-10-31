@@ -1,4 +1,6 @@
 import io
+import os
+import math
 import base64
 import pickle
 
@@ -24,7 +26,8 @@ D_MODEL = 516
 N_HEADS = 6
 NUM_LAYERS = 4
 
-
+MODEL_WEIGHTS_PATH = os.getenv('MODEL_WEIGHTS_PATH')
+TOKENIZER_PATH = os.getenv('TOKENIZER_PATH')
 
 #model data, processing tools, and functions
 
@@ -169,12 +172,12 @@ class TRModel(nn.Module):
         return clf_head
     
 #laoding tokenizer
-with open('model_tokenizer.pkl','rb') as tokenizer_file:
+with open(TOKENIZER_PATH,'rb') as tokenizer_file:
     model_tokenizer = pickle.load(tokenizer_file)
 
 #loading model weights
 model = TRModel(vocabulary_size=model_tokenizer._tokenizer.get_vocab_size())
-model.load_state_dict(torch.load(f='/home/luchian/all_data/ML_models_weights/29-10-2025_TextRec_6000_1000_weights_v1.0.pth'))
+model.load_state_dict(torch.load(f=MODEL_WEIGHTS_PATH))
 
 #request bodies
 class InputData(BaseModel):
