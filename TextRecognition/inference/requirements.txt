@@ -1,0 +1,13 @@
+pillow==12.0.0
+fastapi==0.118.0
+fastapi-cli==0.0.13
+fastapi-cloud-cli==0.3.0	
+pydantic==2.11.10
+pydantic_core==2.33.2
+torch==2.8.0
+torch-summary==1.4.5
+torchvision==0.23.0
+onnx==1.19.0
+onnx-ir==0.1.10
+onnxruntime==1.23.0
+onnxscript==0.5.3
