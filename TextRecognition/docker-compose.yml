@@ -5,17 +5,17 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
   model:
-    build: ./model_inference
-    container_name: model_service
+    build: ./inference
+    container_name: inference_container
     environment:
       MODEL_WEIGHTS_PATH: ${MODEL_WEIGHTS_PATH}
       TOKENIZER_PATH: ${TOKENIZER_PATH}
@@ -24,23 +24,23 @@ services:
     depends_on:
       - postgres
 
-  dbsaver:
-    build: ./db_saver
+  postgresdb:
+    build: ./db_
     container_name: db_saver
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_USER_PASSWORD}
     ports:
-      - "8080:8080"
+      - "8001:8001"
     depends_on:
       - postgres
 
   frontend:
     build: ./frontend
-    container_name: frontend_app
+    container_name: frontend_container
     environment:
       MODEL_SERVICE_URL: http://model:8000
       DBSAVER_SERVICE_URL: http://dbsaver:8080
