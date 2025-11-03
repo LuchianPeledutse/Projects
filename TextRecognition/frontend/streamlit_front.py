@@ -66,7 +66,7 @@ if uploaded_file is not None:
                 #backend prediction API endpoint
                 prediction_api_url = INFERENCE_API+'/prediction'
                 #backend interaction API endpoint
-                interaction_api_url = DB_API + '/interaction'
+                interaction_api_url = DB_API+'/interaction'
 
                 # POST request with the image file
                 response = httpx.post(

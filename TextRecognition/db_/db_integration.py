@@ -14,10 +14,12 @@ from sqlalchemy import create_engine, DateTime, Text
 DB_USER = os.getenv('DB_USER')
 DB_USER_PASSWORD = os.getenv('DB_USER_PASSWORD')
 DB_NAME = os.getenv('DB_NAME')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT')
 
 #creating necessary information for the database 
 Base = declarative_base()
-engine = create_engine('postgresql://'+DB_USER+':'+DB_USER_PASSWORD+'@localhost:5432/'+DB_NAME)
+engine = create_engine('postgresql://'+DB_USER+':'+DB_USER_PASSWORD+'@'+DB_HOST+':'+DB_PORT+'/'+DB_NAME)
 
 #creating models for the database
 class UserInteraction(Base):

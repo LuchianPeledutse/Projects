@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 80
-CMD ["streamlit", "run", "streamlit_front.py", "--server.port=80", "server.address=0.0.0.0"]
+CMD ["streamlit", "run", "streamlit_front.py", "--server.port=80", "--server.address=0.0.0.0"]

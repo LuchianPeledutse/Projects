@@ -18,9 +18,6 @@ from torch.utils import data
 from torchvision import transforms
 from torchvision.transforms import functional
 
-import onnx
-import onnxruntime
-
 #global parameters
 D_MODEL = 516
 N_HEADS = 6
@@ -76,7 +73,7 @@ def pos_embeds(embedding_matrix, dev='cpu'):
     return embedding_matrix + pe.unsqueeze(0)
 
 #model inference
-def model_inference(pillow_picture, model, tokenizer, word_transform = make_spaces, picture_transform = resnet_trans, device = 'cpu', limit = 100):
+def model_inference(pillow_picture, model, tokenizer, word_transform=make_spaces, picture_transform=resnet_trans, device='cpu', limit=100):
     """
     Description
     -----------
@@ -177,7 +174,7 @@ with open(TOKENIZER_PATH,'rb') as tokenizer_file:
 
 #loading model weights
 model = TRModel(vocabulary_size=model_tokenizer._tokenizer.get_vocab_size())
-model.load_state_dict(torch.load(f=MODEL_WEIGHTS_PATH))
+model.load_state_dict(torch.load(f=MODEL_WEIGHTS_PATH, map_location=torch.device('cpu')))
 
 #request bodies
 class InputData(BaseModel):
@@ -192,7 +189,7 @@ app = fastapi.FastAPI()
 @app.post('/prediction')
 async def predict(data: InputData):
     image = Image.open(io.BytesIO(base64.b64decode(data.image_64_base))).convert("RGB")
-    prediction = model_inference(pillow_picture=image, model = model, tokenizer=model_tokenizer)
+    prediction = model_inference(pillow_picture=image, model=model, tokenizer=model_tokenizer)
     return {"generated_text": prediction}
 
 

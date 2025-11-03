@@ -4,21 +4,25 @@ services:
   postgres:
     image: postgres:15
     restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+    env_file:
+      - .env
+    networks:
+      - main_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U $DB_USER -d $DB_NAME'"]
+      interval: 5s
+      retries: 5
 
   model:
     build: ./inference
-    container_name: inference_container
-    environment:
-      MODEL_WEIGHTS_PATH: ${MODEL_WEIGHTS_PATH}
-      TOKENIZER_PATH: ${TOKENIZER_PATH}
+    networks:
+      - main_network
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:
@@ -26,29 +30,33 @@ services:
 
   postgresdb:
     build: ./db_
-    container_name: db_saver
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_USER_PASSWORD}
+    networks:
+      - main_network
+    env_file:
+      - .env
     ports:
       - "8001:8001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
-    container_name: frontend_container
-    environment:
-      MODEL_SERVICE_URL: http://model:8000
-      DBSAVER_SERVICE_URL: http://dbsaver:8080
+    networks:
+      - main_network
+    env_file:
+      - .env
     ports:
-      - "8501:8501"
+      - "80:80"
     depends_on:
-      - model
-      - dbsaver
+      model:
+        condition: service_started
+      postgresdb:
+        condition: service_started
 
 volumes:
   postgres_data:
+
+networks:
+  main_network:
+    driver: bridge
