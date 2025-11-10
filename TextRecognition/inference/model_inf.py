@@ -29,23 +29,8 @@ TOKENIZER_PATH = os.getenv('TOKENIZER_PATH')
 #model data, processing tools, and functions
 
 #transform for PIL pictures
-def resnet_trans(pil_image):
-    """
-    Parameters
-    ----------
-    pil_image: image opened with pillow library 
-    
-    returns
-    ----------
-    Tensor image transformed for ResNet; with dtype float32
-    """
-    #apply necessary transformations for ResNet
-    data_transforms = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize((224,224)),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    return data_transforms(pil_image)
+def vit_trans(pil_picture, processor, device='cuda'):
+    return processor(pil_picture.convert("RGB"), return_tensors="pt").pixel_values[0].unsqueeze(dim=0).to(device=device)
 
 #transform for words
 def make_spaces(word):
