@@ -5,8 +5,10 @@ import base64
 import httpx
 
 from PIL import Image
+import pillow_heif
 
 import streamlit as st
+pillow_heif.register_heif_opener()
 
 
 
@@ -42,7 +44,7 @@ st.markdown(
 # File Upload Section
 uploaded_file = st.file_uploader(
     "Choose an image...",
-    type=["png", "jpg", "jpeg"],
+    type=["png", "jpg", "jpeg", "HEIC"],
     help="Supported formats: PNG, JPG, JPEG"
 )
 
@@ -72,7 +74,7 @@ if uploaded_file is not None:
                 response = httpx.post(
                     prediction_api_url,
                     json = {"image_64_base": image_64},
-                    timeout = 10 
+                    timeout = 180
                 )
 
                 if response.status_code == 200:
